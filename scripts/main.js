@@ -21,12 +21,15 @@ const display= (function() {
     }
 
     const _changeMarker = function(playerSign){ 
+        console.log('eventListener WORKS');
         return function(e) {
-        e.target.textContent= playerSign;
-        //save changes to gameboard
-        _clearGameBoard();
-        _children.forEach(child => getGameboard().push(child.textContent));
-    }}
+            e.target.textContent= playerSign;
+            
+            //save changes to gameboard
+            _clearGameBoard();
+            _children.forEach(child => getGameboard().push(child.textContent));
+        }
+    }
 
     const _createMarkerSpot= (marker) => {
         _loadDOMElements();
@@ -42,49 +45,38 @@ const display= (function() {
         });
     }
 
-    const resetGrid= () => {
-        getGameboard().forEach(element => {
-            _createMarkerSpot('');
-        })
-    }
-
     //EVENT LISTENERS
-    const changeTurns = (player) => {
+    const changeTurns = () => {
         _loadDOMElements();
-        //resets event listneres so they mark correct sign
-        if(player.sign== 'X') {
-            _children.forEach(child => child.removeEventListener('click', _changeMarker('X')));
-            _children.forEach(child => child.addEventListener('click', _changeMarker('O')));
-        } else if(player.sign== 'O') {
-            _children.forEach(child => child.removeEventListener('click', _changeMarker('O')));
-            _children.forEach(child => child.addEventListener('click', _changeMarker('X')));
-        }
+        let player= game.whoseTurn();
+            _children.forEach(child => child.addEventListener('click', _changeMarker(player.sign)));
     }
 
     return {
-        getGameboard,  //does it need to be public
+        getGameboard,
         populateGrid,
-        resetGrid,
         changeTurns
     }
 })();
 
 
-function playerFactory(number) {
+function PlayerFactory(number) {
     let name= 'Player ' + number;
     let sign= '';
+    let active= null;
     if(number==1) {
         sign= 'X';
+        active= true;
     } else {
         sign= 'O';
+        active= false;
     }
-    let status= 'nonactive';
 
 
     return {
         name,
         sign,
-        status
+        active
     }
 }
 
@@ -100,15 +92,14 @@ const game= (function() {
         [0, 4, 8],
         [2, 4, 6]];
 
-    const checkWinCoditions= () => {
+    const _checkWinCoditions= () => {
         let board= display.getGameboard();
-        console.log(board);
         _winConditions.forEach(arr => {
             if(board[arr[0]]!='' && board[arr[0]]==board[arr[1]] && board[arr[1]]==board[arr[2]]) {
                 if(board[arr[0]]=='X') {
-                    console.log('P1 WIN');
+                    return console.log('P1 WIN');
                 } else {
-                    console.log('P2 WIN');
+                    return console.log('P2 WIN');
                 }
             } else if(Array.from(board).includes('')==false) {
                 return console.log('TIE');
@@ -116,14 +107,31 @@ const game= (function() {
         })
     }
 
-    display.resetGrid();
+    let _player1Turn= true;
+    const whoseTurn = () => {
+        if(_player1Turn) {
+            _player1Turn= false;
+            return player1;
+        } else {
+            _player1Turn= true;
+            return player2;
+        }
+    }
 
-    const playerOne= playerFactory(1);
-    const playerTwo= playerFactory(2);
+    //GAME FLOW
+    display.populateGrid();
 
-    display.changeTurns(playerOne);
+    const player1= PlayerFactory(1);
+    const player2= PlayerFactory(2);
+
+
+    //
 
     return {
-        checkWinCoditions
+        //temporary export
+        _checkWinCoditions,
+        whoseTurn,
+        player1,
+        player2
     }
 })();
