@@ -1,12 +1,93 @@
 const display= (function() {
-    let _container= null;
-    let _children= null;
 
-    const _loadDOMElements= () => {
-    _container= document.querySelector('#container');
-    _children= document.querySelectorAll('.child');
+    const _DOMElements= {
+        getContainer: function(){
+            return document.querySelector('#container');
+        },
+        getChildren: function() {
+            return document.querySelectorAll('.child');
+        }
     }
 
+    const _createMarkerSpot= (marker) => {
+        let markerSpot= document.createElement('div');
+        markerSpot.textContent= marker;
+        markerSpot.classList.add('child');
+        _DOMElements.getContainer().appendChild(markerSpot);
+    }
+
+    const populateGrid= () => {
+        gameRules.getGameboard().forEach(element => {
+            _createMarkerSpot(element);
+        });
+    }
+
+    /*
+    const _changeMarker = function(){ 
+            return function(e) {
+                e.target.textContent= player.sign;
+                
+                //save changes to gameboard == updates gameboard
+                gameRules.clearGameboard();
+                _DOMElements.getChildren().forEach(child => gameRules.getGameboard().push(child.textContent));
+
+                gameRules.turnCompletionCheck= true;
+            }
+        }   
+    }
+*/
+
+    //EVENT LISTENERS
+    const changeTurns = () => {
+        let player= gameRules.whoseTurn();
+
+        //delete all old listeners == replace old node with clone node
+        _DOMElements.getChildren().forEach(child => {
+            let childClone= child.cloneNode(true);
+            child.parentNode.replaceChild(childClone, child);
+        });
+
+        _DOMElements.getChildren().forEach(child => child.addEventListener('click', function(e) {
+                console.log('added event listener ' + player.sign);
+                e.target.textContent= player.sign;
+                
+                //save changes to gameboard == updates gameboard
+                gameRules.clearGameboard();
+                _DOMElements.getChildren().forEach(child => gameRules.getGameboard().push(child.textContent));
+
+                gameRules.turnOverCheck= true;
+        }));
+    }
+
+    return {
+        populateGrid,
+        changeTurns
+    }
+})();
+
+/*
+function PlayerFactory(number) {
+    let name= 'Player ' + number;
+    let sign= '';
+    if(number==1) {
+        sign= 'X';
+    } else {
+        sign= 'O';
+    }
+
+    return {
+        name,
+        sign,
+    }
+}
+*/
+
+const Players = {
+    P1: {name: 'Player 1', sign: 'X'},
+    P2: {name: 'Player 2', sign: 'O'}
+}
+
+const gameRules= (function() {
     let _gameboard= 
     ['', '', '',
      '', '' ,'' ,
@@ -16,72 +97,10 @@ const display= (function() {
         return _gameboard;
     }
 
-    const _clearGameBoard= () => {
+    const clearGameboard= () => {
         return _gameboard=[];
     }
 
-    const _changeMarker = function(playerSign){ 
-        console.log('eventListener WORKS');
-        return function(e) {
-            e.target.textContent= playerSign;
-            
-            //save changes to gameboard
-            _clearGameBoard();
-            _children.forEach(child => getGameboard().push(child.textContent));
-        }
-    }
-
-    const _createMarkerSpot= (marker) => {
-        _loadDOMElements();
-        let markerSpot= document.createElement('div');
-        markerSpot.textContent= marker;
-        markerSpot.classList.add('child');
-        _container.appendChild(markerSpot);
-    }
-
-    const populateGrid= () => {
-        getGameboard().forEach(element => {
-            _createMarkerSpot(element);
-        });
-    }
-
-    //EVENT LISTENERS
-    const changeTurns = () => {
-        _loadDOMElements();
-        let player= game.whoseTurn();
-            _children.forEach(child => child.addEventListener('click', _changeMarker(player.sign)));
-    }
-
-    return {
-        getGameboard,
-        populateGrid,
-        changeTurns
-    }
-})();
-
-
-function PlayerFactory(number) {
-    let name= 'Player ' + number;
-    let sign= '';
-    let active= null;
-    if(number==1) {
-        sign= 'X';
-        active= true;
-    } else {
-        sign= 'O';
-        active= false;
-    }
-
-
-    return {
-        name,
-        sign,
-        active
-    }
-}
-
-
-const game= (function() {
     const _winConditions= [
         [0, 1, 2],
         [3, 4, 5],
@@ -92,17 +111,24 @@ const game= (function() {
         [0, 4, 8],
         [2, 4, 6]];
 
-    const _checkWinCoditions= () => {
-        let board= display.getGameboard();
+    const checkWinCoditions= () => {
+
+        let board= getGameboard();
         _winConditions.forEach(arr => {
             if(board[arr[0]]!='' && board[arr[0]]==board[arr[1]] && board[arr[1]]==board[arr[2]]) {
                 if(board[arr[0]]=='X') {
-                    return console.log('P1 WIN');
+                    console.log('P1 WIN');
+                    return true;
                 } else {
-                    return console.log('P2 WIN');
+                    console.log('P2 WIN');
+                    return true;
                 }
             } else if(Array.from(board).includes('')==false) {
-                return console.log('TIE');
+                console.log('TIE');
+                return true;
+            } else {
+                console.log('Continue playing');
+                return false;
             }
         })
     }
@@ -111,27 +137,30 @@ const game= (function() {
     const whoseTurn = () => {
         if(_player1Turn) {
             _player1Turn= false;
-            return player1;
+            return Players.P1;
         } else {
             _player1Turn= true;
-            return player2;
+            return Players.P2;
         }
     }
 
-    //GAME FLOW
+    return {
+        getGameboard,
+        clearGameboard,
+        checkWinCoditions,
+        whoseTurn,
+    }
+})();
+
+
+const gameFlow= (function() {
+
     display.populateGrid();
 
-    const player1= PlayerFactory(1);
-    const player2= PlayerFactory(2);
-
-
-    //
-
-    return {
-        //temporary export
-        _checkWinCoditions,
-        whoseTurn,
-        player1,
-        player2
+    let turnOverCheck= true;
+    if(turnOverCheck== true) {
+        turnOverCheck= false;
+        display.changeTurns();
     }
+
 })();
